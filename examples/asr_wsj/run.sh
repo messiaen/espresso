@@ -159,8 +159,8 @@ if [ ${stage} -le 3 ]; then
   echo "Stage 3: Text Binarization for LM Training"
   if ! $use_wordlm; then
     echo "$0: binarizing char text..."
-    mkdir -p $lmdatadir/logs
-    ${decode_cmd} $lmdatadir/logs/preprocess.log \
+    mkdir -p $lmdatadir/log
+    ${decode_cmd} $lmdatadir/log/preprocess.log \
       python3 ../../preprocess.py --user-dir espresso --task language_modeling_for_asr \
         --workers 30 --srcdict $lmdict --only-source \
         --trainpref $lmdatadir/train.tokens \
@@ -169,8 +169,8 @@ if [ ${stage} -le 3 ]; then
         --destdir $lmdatadir
   else
     echo "$0: binarizing word text..."
-    mkdir -p $wordlmdatadir/logs
-    ${decode_cmd} $wordlmdatadir/logs/preprocess.log \
+    mkdir -p $wordlmdatadir/log
+    ${decode_cmd} $wordlmdatadir/log/preprocess.log \
       python3 ../../preprocess.py --user-dir espresso --task language_modeling_for_asr \
         --workers 30 --srcdict $wordlmdict --only-source \
         --trainpref $wordlmdatadir/train \
@@ -189,8 +189,8 @@ fi
 if [ ${stage} -le 4 ] && ! $use_wordlm; then
   echo "Stage 4: char LM Training"
   valid_subset=valid
-  mkdir -p $lmdir/logs
-  log_file=$lmdir/logs/train.log
+  mkdir -p $lmdir/log
+  log_file=$lmdir/log/train.log
   [ -f $lmdir/checkpoint_last.pt ] && log_file="-a $log_file"
   CUDA_VISIBLE_DEVICES=$free_gpu python3 ../../train.py $lmdatadir --seed 1 --user-dir espresso \
     --task language_modeling_for_asr --dict $lmdict \
@@ -208,7 +208,7 @@ fi
 if [ ${stage} -le 5 ] && ! $use_wordlm; then
   echo "Stage 5: char LM Evaluation"
   for gen_subset in valid test; do
-    log_file=$lmdir/logs/evaluation_$gen_subset.log
+    log_file=$lmdir/log/evaluation_$gen_subset.log
     python3 ../../eval_lm.py $lmdatadir --user-dir espresso --cpu \
       --task language_modeling_for_asr --dict $lmdict --gen-subset $gen_subset \
       --max-tokens 192000 --max-sentences 256 --sample-break-mode eos \
@@ -219,8 +219,8 @@ fi
 if [ ${stage} -le 6 ] && $use_wordlm; then
   echo "Stage 6: word LM Training"
   valid_subset=valid
-  mkdir -p $wordlmdir/logs
-  log_file=$wordlmdir/logs/train.log
+  mkdir -p $wordlmdir/log
+  log_file=$wordlmdir/log/train.log
   [ -f $wordlmdir/checkpoint_last.pt ] && log_file="-a $log_file"
   CUDA_VISIBLE_DEVICES=$free_gpu python3 ../../train.py $wordlmdatadir --seed 1 --user-dir espresso \
     --task language_modeling_for_asr --dict $wordlmdict \
@@ -239,7 +239,7 @@ fi
 if [ ${stage} -le 7 ] && $use_wordlm; then
   echo "Stage 7: word LM Evaluation"
   for gen_subset in valid test; do
-    log_file=$wordlmdir/logs/evaluation_$gen_subset.log
+    log_file=$wordlmdir/log/evaluation_$gen_subset.log
     python3 ../../eval_lm.py $wordlmdatadir --user-dir espresso --cpu \
       --task language_modeling_for_asr --dict $wordlmdict --gen-subset $gen_subset \
       --max-tokens 12800 --max-sentences 512 --sample-break-mode eos \
@@ -281,8 +281,8 @@ if [ ${stage} -le 9 ]; then
     valid_subset="$valid_subset,train_subset"
   fi
   [ -f local/wer_output_filter ] && opts="$opts --wer-output-filter local/wer_output_filter"
-  mkdir -p $dir/logs
-  log_file=$dir/logs/train.log
+  mkdir -p $dir/log
+  log_file=$dir/log/train.log
   [ -f $dir/checkpoint_last.pt ] && log_file="-a $log_file"
   CUDA_VISIBLE_DEVICES=$free_gpu speech_train.py data --task speech_recognition_espresso --seed 1 --user-dir espresso \
     --log-interval $((800/ngpus)) --log-format simple --print-training-sample-interval $((2000/ngpus)) \
@@ -329,7 +329,7 @@ if [ ${stage} -le 10 ]; then
     echo "log saved in ${decode_dir}/decode.log"
     if $kaldi_scoring; then
       echo "verify WER by scoring with Kaldi..."
-      local/score.sh data/$dataset $decode_dir
+      local/score_e2e.sh data/$dataset $decode_dir
       cat ${decode_dir}/scoring_kaldi/wer
     fi
   done
